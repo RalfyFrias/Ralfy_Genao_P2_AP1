@@ -1,0 +1,116 @@
+﻿@page "/Ciudad/Index"
+@using Ralfy_Genao_P2_AP1.Models
+@using static Ralfy_Genao_P2_AP1.Service.CiudadService
+@inject CiudadServices ciudadServices
+@inject NavigationManager navigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Consulta de Ciudades</PageTitle>
+
+<div class="card-header bg-primary text-center text-white py-2 rounded">
+    <h3 style="font-weight: bold;" class="font-weight-bold">Consulta de Ciudades</h3>
+</div>
+
+<div class="row mb-3 align-items-end">
+    <div class="col md-3">
+        <label for="Filtro" class="form-label">Filtrar por:</label>
+        <select @bind="filtro" class="form-select">
+            <option value="ID">CiudadId</option>
+            <option value="Fecha">Fecha</option>
+            <option value="Monto">Monto</option>
+        </select>
+    </div>
+
+    <div class="col md-6">
+        <label for="ValorFiltro" class="form-label">Búsqueda:</label>
+        <div class="input-group">
+            <input @bind="valorFiltro" class="form-control" placeholder="Buscar" type="@(filtro == "Fecha" ? "date" : "text")" />
+            <button @onclick="Buscar" class="btn btn-outline-primary" type="button">
+                <span class="bi bi-search"></span> Buscar
+            </button>
+        </div>
+    </div>
+
+    <div class="col md-3 text-end">
+        <a href="/Ciudad/Create" class="btn btn-success"><span class="bi bi-plus-circle"></span> Crear</a>
+    </div>
+</div>
+
+<table class="table table-bordered text-center">
+    <thead class="border-primary text-white">
+        <tr>
+            <th>CiudadId</th>
+            <th>fecha</th>
+            <th>Asignatura</th>
+            <th>Monto</th>
+            <th>Editar</th>
+            <th>Eliminar</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ciudad in ListaCiudades)
+        {
+            <tr>
+                <td>@ciudad.CiudadId</td>
+                <td>@ciudad.Fecha.ToString("yyyy-MM-dd")</td>
+                <td>@ciudad.Asignatura</td>
+                <td>@ciudad.Monto.ToString("C")</td>
+                <td>
+                    <a href="/Ciudad/Edit/@ciudad.CiudadId" class="btn btn-outline-success">
+                        <span class="bi bi-pencil-fill"></span>
+                    </a>
+                </td>
+                <td>
+                    <a href="/Ciudad/Delete/@ciudad.CiudadId" class="btn btn-outline-danger">
+                        <span class="bi bi-trash-fill"></span>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="card-footer text-start">
+    <p><strong>Total de Ciudades:</strong> @ListaCiudades.Count</p>
+    <p><strong>Total Monto:</strong> @ListaCiudades.Sum(c => c.Monto).ToString("C")</p>
+</div>
+
+@code {
+    public Ciudades ciudad { get; set; } = new Ciudades();
+    public List<Ciudades> ListaCiudades { get; set; } = new List<Ciudades>();
+    public string filtro = "ID";
+    public string valorFiltro = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCiudades();
+    }
+
+    private async Task CargarCiudades()
+    {
+        ListaCiudades = await ciudadServices.Listar(c => true);
+    }
+
+    public async Task Buscar()
+    {
+        if (string.IsNullOrWhiteSpace(valorFiltro))
+        {
+            await CargarCiudades();
+        }
+        else
+        {
+            if (filtro == "ID" && int.TryParse(valorFiltro, out int ciudadId))
+            {
+                ListaCiudades = await ciudadServices.Listar(c => c.CiudadId == ciudadId);
+            }
+            else if (filtro == "Fecha" && DateTime.TryParse(valorFiltro, out DateTime fecha))
+            {
+                ListaCiudades = await ciudadServices.Listar(c => c.Fecha.Date == fecha.Date);
+            }
+            else if (filtro == "Monto" && decimal.TryParse(valorFiltro, out decimal monto))
+            {
+                ListaCiudades = await ciudadServices.Listar(c => c.Monto == monto);
+            }
+        }
+    }
+}
