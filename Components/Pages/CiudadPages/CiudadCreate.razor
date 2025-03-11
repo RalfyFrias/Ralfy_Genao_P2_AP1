@@ -1,0 +1,185 @@
+﻿﻿
+@page "/Encuesta/Create"
+@using Ralfy_Genao_P2_AP1.Service
+@using Ralfy_Genao_P2_AP1.Models
+@inject EncuestaServices EncuestaServices
+@inject CiudadServices CiudadeServices
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+<EditForm Model="Encuesta" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <Toasts class="p-3" Messages="MensajeToast" Placement="ToastsPlacement.TopRight" />
+    <div class="container">
+        <div class="card shadow-lg">
+            <div class="card-header text-center">
+                <h5 class="card-title">Crear Encuesta</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label"><strong>EncuestaId</strong></label>
+                    <InputNumber class="form-control" @bind-Value="Encuesta.EncuestasId" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Fecha</strong></label>
+                    <InputDate class="form-control" @bind-Value="Encuesta.Fecha" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Asignatura</strong></label>
+                    <InputText class="form-control" @bind-Value="Encuesta.Asignatura" />
+                </div>
+
+               
+
+                <div class="border border-success p-3 mt-3">
+                    <h5>Detalles de la Encuesta</h5>
+                    <CiudadPicker Ciudad="ListaCiudades"
+                                  CiudadId="DetalleSeleccionado.CiudadId"
+                                  Monto="DetalleSeleccionado.MontoEncuesta"
+                                  CiudadSelected="HandleCiudadSelected" />
+
+                    <hr />
+                    <table class="table table-light text-center">
+                        <thead class="thead-light">
+                            <tr class="text-center">
+                                <th>Ciudad</th>
+                                <th>Monto</th>
+                                <th>Remover</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var detalle in Encuesta.EncuestaDetalles)
+                            {
+                                <tr>
+                                    <td>@detalle.Ciudad?.Nombre ?? "Sin ciudad"</td>
+                                    <td>@detalle.MontoEncuesta</td>
+                                    <td>
+                                        <button type="button"
+                                                class="btn btn-outline-danger bi bi-trash"
+                                                @onclick="() => RemoverDetalle(detalle)"></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-6 offset-6">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Monto Total</strong></label>
+                            <label class="form-control text-end">
+                                <strong>@(Encuesta.EncuestaDetalles?.Sum(d => d.MontoEncuesta) ?? 0)</strong>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer text-center mt-2">
+                <a href="/Encuesta/Index" class="btn btn-secondary">
+                    <span class="bi bi-arrow-left"></span> Volver
+                </a>
+                <button type="submit" class="btn btn-primary bi bi-floppy">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    public enum ToastType
+    {
+        Success,
+        Info,
+        Warning,
+        Danger
+    }
+
+    public class ToastMessage
+    {
+        public ToastType Type { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string HelpText { get; set; } = string.Empty;
+    }
+
+    public Encuestas Encuesta { get; set; } = new Encuestas { EncuestaDetalles = new List<EncuestaDetalles>() };
+    public EncuestaDetalles DetalleSeleccionado { get; set; } = new();
+    public List<Ciudades> ListaCiudades { get; set; } = new();
+    private List<ToastMessage> MensajeToast { get; set; } = new();
+
+    private ToastMessage CreateToastMessage(ToastType toastType, string mensaje)
+        => new ToastMessage
+            {
+                Type = toastType,
+                Title = "Notificación",
+                HelpText = $"{DateTime.Now}",
+                Message = mensaje,
+            };
+
+    private void ShowMessage(ToastType toastType, string mensaje)
+    {
+        MensajeToast.Add(CreateToastMessage(toastType, mensaje));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaCiudades = await CiudadeServices.Listar(d => true);
+        if (ListaCiudades == null || !ListaCiudades.Any())
+        {
+            ShowMessage(ToastType.Warning, "No se encontraron ciudades en la base de datos.");
+        }
+    }
+
+    private async Task HandleCiudadSelected((Ciudades ciudad, int monto) selection)
+    {
+        if (selection.ciudad == null || selection.ciudad.CiudadesId <= 0)
+        {
+            ShowMessage(ToastType.Warning, "No se seleccionó una ciudad válida.");
+            return;
+        }
+
+        var detalle = new EncuestaDetalles
+            {
+                CiudadId = selection.ciudad.CiudadesId,
+                MontoEncuesta = selection.monto
+            };
+
+        Encuesta.EncuestaDetalles.Add(detalle);
+        DetalleSeleccionado = new EncuestaDetalles();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task Guardar()
+    {
+        try
+        {
+            var paso = await EncuestaServices.Guardar(Encuesta);
+
+            if (paso)
+            {
+                ShowMessage(ToastType.Success, "Se creó correctamente");
+                NavigationManager.NavigateTo("/Encuesta/Index");
+            }
+            else
+            {
+                ShowMessage(ToastType.Danger, "No se ha creado correctamente");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage(ToastType.Danger, $"Error al guardar: {ex.Message}");
+        }
+    }
+
+    public void RemoverDetalle(EncuestaDetalles detalle)
+    {
+        Encuesta.EncuestaDetalles.Remove(detalle);
+        StateHasChanged();
+    }
+}
