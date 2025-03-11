@@ -4,10 +4,13 @@ using Ralfy_Genao_P2_AP1.DAL;
 using Ralfy_Genao_P2_AP1.Service;
 
 var builder = WebApplication.CreateBuilder(args);
-var conStr = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<Context>(options =>
-    options.UseSqlServer(conStr));
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+var ConStr = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContextFactory<Context>(o => o.UseSqlServer(ConStr));
 
 builder.Services.AddScoped<CiudadServices>();
 builder.Services.AddScoped<EncuestaServices>();
