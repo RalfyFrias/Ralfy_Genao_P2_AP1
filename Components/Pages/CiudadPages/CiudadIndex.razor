@@ -1,116 +1,146 @@
-﻿@page "/Ciudad/Index"
+﻿@page "/Encuesta/Index"
 @using Ralfy_Genao_P2_AP1.Models
-@using static Ralfy_Genao_P2_AP1.Service.CiudadService
-@inject CiudadServices ciudadServices
-@inject NavigationManager navigationManager
-@rendermode InteractiveServer
+@using Ralfy_Genao_P2_AP1.Service
+@inject EncuestaServices EncuestaServices
+@inject NavigationManager NavigationManager
 
-<PageTitle>Consulta de Ciudades</PageTitle>
+<PageTitle>Encuesta</PageTitle>
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title m-0">Registro Encuesta</h5>
+            <a href="/Encuesta/Create" class="btn btn-primary">
+                <span class="bi bi-plus-square"></span> Crear
+            </a>
+        </div>
 
-<div class="card-header bg-primary text-center text-white py-2 rounded">
-    <h3 style="font-weight: bold;" class="font-weight-bold">Consulta de Ciudades</h3>
-</div>
+        <div class="card-body">
 
-<div class="row mb-3 align-items-end">
-    <div class="col md-3">
-        <label for="Filtro" class="form-label">Filtrar por:</label>
-        <select @bind="filtro" class="form-select">
-            <option value="ID">CiudadId</option>
-            <option value="Fecha">Fecha</option>
-            <option value="Monto">Monto</option>
-        </select>
-    </div>
+            <div class="row">
 
-    <div class="col md-6">
-        <label for="ValorFiltro" class="form-label">Búsqueda:</label>
-        <div class="input-group">
-            <input @bind="valorFiltro" class="form-control" placeholder="Buscar" type="@(filtro == "Fecha" ? "date" : "text")" />
-            <button @onclick="Buscar" class="btn btn-outline-primary" type="button">
-                <span class="bi bi-search"></span> Buscar
-            </button>
+                <div class="col-3">
+                    <label class="col-form-label"><strong>Filtrar por</strong></label>
+                </div>
+
+                <div class="col-4">
+                    <label class="col-form-label"><strong>B&uacute;squeda</strong></label>
+                </div>
+
+                <div class="col-2">
+                    <label class="col-form-label"><strong>Desde</strong></label>
+                </div>
+                <div class="col-2">
+                    <label class="col-form-label"><strong>Hasta</strong></label>
+                </div>
+                <div class="col-1">
+                    <button type="button" class="btn btn-outline-secondary bi bi-arrow-counterclockwise"
+                    @onclick="Restablecer">
+                    </button>
+                </div>
+            </div>
+
+            <div class="row align-items-center">
+                <div class="col-3">
+                    <InputSelect class="form-select" @bind-Value="filtro">
+                        <option value="" selected disabled>Elija una opci&oacute;n</option>
+                        <option value="id">EncuestaId</option>
+                        <option value="Fecha">Fecha</option>
+                    </InputSelect>
+                </div>
+                <div class="col-4">
+                    <div class="input-group">
+                        <input class="form-control" @bind="valorFiltro" placeholder="Buscar" />
+                        <button type="button" class="btn btn-outline-primary bi bi-search" @onclick="Buscar"></button>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <InputDate class="form-control" @bind-Value="Desde"></InputDate>
+                </div>
+                <div class="col-2">
+                    <div class="input-group">
+                        <InputDate class="form-control" @bind-Value="Hasta"></InputDate>
+                    </div>
+                </div>
+
+            </div>
+
+            <table class="table table-hover table-bordered text-center">
+                <thead class="table  table-striped text-black">
+                    <tr>
+                        <th>Id</th>
+                        <th>Fecha</th>
+                        <th>Asignatura</th>
+                        <th>Modificar</th>
+                        <th>Eliminar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var encuesta in Encuesta)
+                    {
+                        <tr>
+                            <td>@encuesta.EncuestasId</td>
+                            <td>@encuesta.Fecha</td>
+                            <td>@encuesta.Asignatura</td>
+                            <td class="text-center">
+                                <a href="/Ingreso/Edit/@encuesta.EncuestasId" class="btn btn-outline-primary bi bi-pencil-square"></a>
+                            </td>
+                            <td class="text-center">
+                                <a href="/Ingreso/Delete/@encuesta.EncuestasId" class="btn btn-outline-danger bi bi-trash"></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+             <div class="card-footer space-between">
+                <label><strong>Cantidad: @Encuesta.Count()</strong></label>
+                <label><strong>Total: @Ciudades.Sum(i => i.Monto).ToString("N2")</strong</label>
+             </div>
         </div>
     </div>
-
-    <div class="col md-3 text-end">
-        <a href="/Ciudad/Create" class="btn btn-success"><span class="bi bi-plus-circle"></span> Crear</a>
-    </div>
 </div>
 
-<table class="table table-bordered text-center">
-    <thead class="border-primary text-white">
-        <tr>
-            <th>CiudadId</th>
-            <th>fecha</th>
-            <th>Asignatura</th>
-            <th>Monto</th>
-            <th>Editar</th>
-            <th>Eliminar</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var ciudad in ListaCiudades)
-        {
-            <tr>
-                <td>@ciudad.CiudadId</td>
-                <td>@ciudad.Fecha.ToString("yyyy-MM-dd")</td>
-                <td>@ciudad.Asignatura</td>
-                <td>@ciudad.Monto.ToString("C")</td>
-                <td>
-                    <a href="/Ciudad/Edit/@ciudad.CiudadId" class="btn btn-outline-success">
-                        <span class="bi bi-pencil-fill"></span>
-                    </a>
-                </td>
-                <td>
-                    <a href="/Ciudad/Delete/@ciudad.CiudadId" class="btn btn-outline-danger">
-                        <span class="bi bi-trash-fill"></span>
-                    </a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<div class="card-footer text-start">
-    <p><strong>Total de Ciudades:</strong> @ListaCiudades.Count</p>
-    <p><strong>Total Monto:</strong> @ListaCiudades.Sum(c => c.Monto).ToString("C")</p>
-</div>
 
 @code {
-    public Ciudades ciudad { get; set; } = new Ciudades();
-    public List<Ciudades> ListaCiudades { get; set; } = new List<Ciudades>();
-    public string filtro = "ID";
-    public string valorFiltro = "";
-
+    public List<Encuestas> Encuesta = new List<Encuestas>();
+    public List<Ciudades> Ciudades = new List<Ciudades>();
+    private string filtro = "";
+    private string valorFiltro = "";
+    public DateTime? Desde { get; set; } = null;
+    public DateTime? Hasta { get; set; } = null;
+    
     protected override async Task OnInitializedAsync()
     {
-        await CargarCiudades();
+        Encuesta = await EncuestaServices.Listar(t => true);
     }
 
-    private async Task CargarCiudades()
+    private async Task Buscar()
     {
-        ListaCiudades = await ciudadServices.Listar(c => true);
-    }
-
-    public async Task Buscar()
-    {
-        if (string.IsNullOrWhiteSpace(valorFiltro))
+        if (!string.IsNullOrWhiteSpace(valorFiltro))
         {
-            await CargarCiudades();
+            if (filtro == "id" && int.TryParse(valorFiltro, out int encuestaId))
+            {
+                Encuesta = await EncuestaServices.Listar(i => i.EncuestasId == encuestaId);
+            }
+            else if (filtro == "Fecha")
+            {
+                Encuesta = await EncuestaServices
+                .Listar(i => i.Fecha >= Desde && i.Fecha <= Hasta); ;
+            }
+
         }
         else
         {
-            if (filtro == "ID" && int.TryParse(valorFiltro, out int ciudadId))
-            {
-                ListaCiudades = await ciudadServices.Listar(c => c.CiudadId == ciudadId);
-            }
-            else if (filtro == "Fecha" && DateTime.TryParse(valorFiltro, out DateTime fecha))
-            {
-                ListaCiudades = await ciudadServices.Listar(c => c.Fecha.Date == fecha.Date);
-            }
-            else if (filtro == "Monto" && decimal.TryParse(valorFiltro, out decimal monto))
-            {
-                ListaCiudades = await ciudadServices.Listar(c => c.Monto == monto);
-            }
+            Encuesta = await EncuestaServices.Listar(p => true);
         }
     }
+
+    private async Task Restablecer()
+    {
+        Encuesta = await EncuestaServices.Listar(p => true);
+        filtro = "";
+        valorFiltro = "";
+        Desde = null;
+        Hasta = null;
+    }
+    
 }
